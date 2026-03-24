@@ -1,0 +1,16 @@
+{
+  "schools": [
+    {
+      "id": "1769846200093",
+      "name": "St Peters Primary"
+    }
+  ],
+  "students": [
+    {
+      "id": "1769846251005",
+      "school_id": "1769846200093",
+      "name": "John Mwangi",
+      "admission_number": "ADM001"
+    }
+  ]
+}

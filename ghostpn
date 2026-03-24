@@ -1,0 +1,14 @@
+C:\Users\user\school-os-backend>node createMaster.js
+[dotenv@17.2.3] injecting env (7) from .env -- tip: 🗂️ backup and recover secrets: https://dotenvx.com/ops
+✅ Connected to the PostgreSQL Database
+✅ Master Admin created successfully:
+{
+  id: '1d94948c-632a-4398-8574-844342cba2e7',
+  full_name: 'Super Master',
+  email: 'master@domain.com',
+  password: '$2b$10$aqYimTMDfpm4PR5g1EgrYu76EXcb4epAUKspOd/RoxDM0NBb/iXbi',
+  is_active: true,
+  created_at: 2026-02-03T11:30:44.985Z
+}
+Login email: master@domain.com
+Login password: SuperSecret123
