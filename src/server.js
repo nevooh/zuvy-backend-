@@ -61,19 +61,20 @@ app.get('/health', (req, res) => {
 });
 
 // --- Serve Flutter frontend ---
-app.use(express.static(path.join(__dirname, 'public')));
+const publicPath = path.join(__dirname, 'public');
+app.use(express.static(publicPath));
 
-// Catch-all route for frontend (exclude API routes)
-app.use((req, res, next) => {
+// Safe catch-all for frontend (exclude API routes)
+app.get('*', (req, res) => {
     if (!req.path.startsWith('/api')) {
-        res.sendFile(path.join(__dirname, 'public/index.html'));
+        res.sendFile(path.join(publicPath, 'index.html'));
     } else {
-        next();
+        res.status(404).json({ error: 'API route not found' });
     }
 });
 
 // --- SERVER LISTEN ---
-const PORT = process.env.PORT || 8080; 
+const PORT = process.env.PORT || 8080;
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Server running on port ${PORT}`);
 });
