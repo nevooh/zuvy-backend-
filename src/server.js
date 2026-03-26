@@ -6,11 +6,25 @@ require('dotenv').config();
 
 
 // 1️⃣ Create Express app
+// 1️⃣ Create Express app
 const app = express();
+
+// --- MOVE THIS TO THE TOP ---
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "*"); 
+  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, PATCH, OPTIONS");
+  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(200);
+  }
+  next();
+});
+
 const { protect } = require('./middleware/authMiddleware');
-// 🚀 Increase the limit so logos can be uploaded (50MB is plenty)
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
+// -----------------------------
 // 2️⃣ Middleware
 app.use(cors({
   origin: '*', // This opens the door for your Netlify frontend
