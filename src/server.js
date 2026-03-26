@@ -23,11 +23,16 @@ app.use((req, res, next) => {
 });
 
 // Keep your standard CORS below it as a backup
+// Remove your manual "Pre-flight Doorman" block and replace standard cors with this:
 app.use(cors({
-  origin: '*', 
+  origin: 'https://zuvyacademy.netlify.app', // Specifically allow your frontend
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
 }));
+
+// Important: Place this ABOVE all your routes
+
 
 // Body Parsers
 app.use(express.json({ limit: '50mb' }));
