@@ -60,10 +60,12 @@ app.get('/health', (req, res) => {
     res.json({ status: "Backend is running!" });
 });
 
-// --- Serve Flutter Frontend ---
+// Serve frontend files
 app.use(express.static(path.join(__dirname, 'public')));
-app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public/index.html'));
+
+// Catch-all route: send frontend for any unmatched route
+app.get('/*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public/index.html'));
 });
 
 // --- SERVER LISTEN ---
