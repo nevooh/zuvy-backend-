@@ -12,7 +12,11 @@ const { protect } = require('./middleware/authMiddleware');
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 // 2️⃣ Middleware
-app.use(cors());
+app.use(cors({
+  origin: '*', // This opens the door for your Netlify frontend
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(express.json()); // for parsing application/json
 app.use('/api/terms', require('./routes/termRoutes'));
 app.use('/api/fee-types', require('./routes/feeTypeRoutes'));
