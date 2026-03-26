@@ -1,31 +1,17 @@
 // src/server.js
 
 const express = require('express');
-const cors = require('cors');
+const path = require('path');
 require('dotenv').config();
 const { protect } = require('./middleware/authMiddleware');
 
 const app = express();
 
-
-// Keep your standard CORS below it as a backup
-// Remove your manual "Pre-flight Doorman" block and replace standard cors with this:
-app.use(cors({
-  origin: 'https://zuvyacademy.netlify.app', // Specifically allow your frontend
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true
-}));
-
-// Important: Place this ABOVE all your routes
-
-
-// Body Parsers
+// --- Body Parsers ---
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
-// --- 2. ROUTE DEFINITIONS ---
-
+// --- API ROUTES ---
 // Auth & Identity
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/identity', require('./routes/identityRoutes'));
@@ -74,12 +60,14 @@ app.get('/health', (req, res) => {
     res.json({ status: "Backend is running!" });
 });
 
-// --- 3. SERVER INITIALIZATION ---
+// --- Serve Flutter Frontend ---
+app.use(express.static(path.join(__dirname, 'public')));
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public/index.html'));
+});
 
-// RAILWAY PRORITY: Always use process.env.PORT first!
+// --- SERVER LISTEN ---
 const PORT = process.env.PORT || 8080; 
-
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Server running on port ${PORT}`);
-    console.log(`✅ Ready for Zuvy Academy at Netlify!`);
 });
