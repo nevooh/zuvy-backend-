@@ -85,9 +85,10 @@ app.get('/health', (req, res) => {
 
 // --- 3. SERVER INITIALIZATION ---
 
-const PORT = process.env.PORT || 5000;
+// RAILWAY PRORITY: Always use process.env.PORT first!
+const PORT = process.env.PORT || 8080; 
 
 app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 Server running on http://localhost:${PORT}`);
-    console.log(`✅ Network access enabled for external devices.`);
+    console.log(`🚀 Server running on port ${PORT}`);
+    console.log(`✅ Ready for Zuvy Academy at Netlify!`);
 });
