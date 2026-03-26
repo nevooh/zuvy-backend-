@@ -7,20 +7,6 @@ const { protect } = require('./middleware/authMiddleware');
 
 const app = express();
 
-// --- 1. GLOBAL MIDDLEWARE ---
-
-// ADD THIS: Manual Pre-flight Doorman
-app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", "*");
-  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, PATCH, OPTIONS");
-  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
-  
-  // If the browser is just "checking" the connection (OPTIONS), say YES immediately.
-  if (req.method === "OPTIONS") {
-    return res.sendStatus(200);
-  }
-  next();
-});
 
 // Keep your standard CORS below it as a backup
 // Remove your manual "Pre-flight Doorman" block and replace standard cors with this:
