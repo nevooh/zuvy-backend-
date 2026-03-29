@@ -2,7 +2,7 @@
   "name": "school-os-backend",
   "version": "1.0.0",
   "main": "index.js",
- "scripts": {
+  "scripts": {
     "start": "node src/server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -16,10 +16,15 @@
     "bcrypt": "^6.0.0",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
+    "csv-parser": "^3.2.0",
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
+    "multer": "^2.1.1",
     "node-datetime": "^2.1.2",
-    "pg": "^8.20.0"
+    "papaparse": "^5.5.3",
+    "pg": "^8.20.0",
+    "uuid": "^8.3.2",
+    "xlsx": "^0.18.5"
   }
 }

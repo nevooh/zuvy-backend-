@@ -1,7 +1,7 @@
 // src/controllers/parentAuthController.js
 const pool = require('../config/db');
 const jwt = require('jsonwebtoken');
-
+const sendOtpSms = require('../services/otpSmsService');
 // src/controllers/parentAuthController.js
 
 exports.requestParentAccess = async (req, res) => {
@@ -35,15 +35,19 @@ exports.requestParentAccess = async (req, res) => {
             [phoneNumber, otp]
         );
 
-        console.log(`[OTP] ${phoneNumber} -> ${otp}`);
+        console.log(`[OTP] ${phoneNumber} -> ${otp}`); // keep for dev
+await sendOtpSms(phoneNumber, otp); // 👈 send real SMS
 
         res.status(200).json({
-            success: true,
-            schoolId: school_id, // Flutter receives this to pass to OTPScreen
-            schoolName: school_name,
-            otp: otp, // Remove this in production! Use SMS service.
-            message: "Code generated."
-        });
+            
+    
+        
+success: true,
+    schoolId: school_id,
+    schoolName: school_name,
+    message: "Verification code sent to your phone."
+});
+            
 
     } catch (err) {
         console.error("OTP ERROR:", err.message);

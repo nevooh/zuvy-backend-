@@ -6,7 +6,7 @@ const smsController = require('./smsController');
 exports.getCheckoutSummary = async (req, res) => {
     try {
         const { amount } = req.body;
-        const feePercent = 0.01; // 2%
+        const feePercent = 0.01; // change this one place only
         const serviceFee = amount * feePercent;
         const totalAmount = amount + serviceFee;
 
@@ -15,7 +15,7 @@ exports.getCheckoutSummary = async (req, res) => {
             data: {
                 original_amount: amount,
                 service_fee: serviceFee,
-                fee_percentage: "1%",
+                fee_percentage: feePercent,  // 👈 send the actual number not a string
                 total_amount: totalAmount
             }
         });
