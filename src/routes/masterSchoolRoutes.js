@@ -1,25 +1,17 @@
 const express = require('express');
-const router = express.Router();
+const router  = express.Router();
 
-const { protectMaster } = require('../middleware/masterAuthMiddleware');
-const masterSchoolController = require('../controllers/masterSchoolController');
+const { protectMaster }       = require('../middleware/masterAuthMiddleware');
+const masterSchoolController  = require('../controllers/masterSchoolController');
 
-// 1️⃣ Fetch all schools (Used for the Table)
-router.get('/schools', protectMaster, masterSchoolController.getAllSchools);
-
-// 2️⃣ Register a new school (Used for the Dialog)
-router.post(
-    '/schools',
-    protectMaster,
-    masterSchoolController.createSchoolWithAdmin
-);
-
-// 3️⃣ Toggle Active/Inactive status (Used for the Actions column)
-// We use PATCH because we are only updating one field (is_active)
-router.patch(
-    '/schools/:id/toggle', 
-    protectMaster, 
-    masterSchoolController.toggleSchoolStatus
-);
+router.get('/schools',                    protectMaster, masterSchoolController.getAllSchools);
+router.post('/schools',                   protectMaster, masterSchoolController.createSchoolWithAdmin);
+router.get('/schools/trash',              protectMaster, masterSchoolController.getTrash);
+router.get('/schools/:id',                protectMaster, masterSchoolController.getSchoolDetail);
+router.patch('/schools/:id/toggle',       protectMaster, masterSchoolController.toggleSchoolStatus);
+router.patch('/schools/:id/plan',         protectMaster, masterSchoolController.updatePlan);
+router.patch('/schools/:id/restore',      protectMaster, masterSchoolController.restoreSchool);
+router.post('/schools/:id/reset-password',protectMaster, masterSchoolController.resetAdminPassword);
+router.delete('/schools/:id',             protectMaster, masterSchoolController.deleteSchool);
 
 module.exports = router;

@@ -1,4 +1,5 @@
 const { pool } = require('../config/db');
+const { generateInvoiceOnTermActivation } = require('../services/autoInvoiceService');
 
 /**
  * Create a new academic term and auto-deploy fees from Blueprint
@@ -67,12 +68,9 @@ exports.getTerms = async (req, res) => {
 
   try {
     const { rows } = await pool.query(
-      `
-      SELECT *
-      FROM academic_terms
-      WHERE school_id = $1
-      ORDER BY is_active DESC, start_date ASC
-      `,
+      `SELECT * FROM academic_terms
+       WHERE school_id = $1 AND name != 'Opening Balance'
+       ORDER BY is_active DESC, start_date ASC`,
       [school_id]
     );
 
@@ -92,7 +90,21 @@ exports.activateTerm = async (req, res) => {
   try {
     await client.query('BEGIN');
 
-    // 1. Deactivate current active term
+    // 1. Block if there is already a live (not yet locked) term
+    const liveCheck = await client.query(
+      `SELECT id FROM academic_terms
+       WHERE school_id = $1 AND is_active = true AND is_locked = false LIMIT 1`,
+      [school_id]
+    );
+    if (liveCheck.rows.length) {
+      await client.query('ROLLBACK');
+      client.release();
+      return res.status(409).json({
+        error: 'Another term is currently active. Lock it before activating a new one.',
+      });
+    }
+
+    // 2. Deactivate current active term (safety sweep)
     await client.query(
       `UPDATE academic_terms
        SET is_active = false
@@ -100,7 +112,7 @@ exports.activateTerm = async (req, res) => {
       [school_id]
     );
 
-    // 2. Activate the new term
+    // 3. Activate the new term
     // THIS WILL FIRE THE TRIGGER: activate_academic_term_snapshot()
     const result = await client.query(
       `UPDATE academic_terms
@@ -116,7 +128,11 @@ exports.activateTerm = async (req, res) => {
       return res.status(404).json({ error: 'Term not found' });
     }
 
-    res.json(result.rows[0]);
+    const activatedTerm = result.rows[0];
+    res.json(activatedTerm);
+
+    // fire-and-forget: generate subscription invoice for this school
+    generateInvoiceOnTermActivation(school_id, activatedTerm.year);
   } catch (err) {
     await client.query('ROLLBACK');
     console.error('ACTIVATION ERROR:', err.message); // <--- LOG THIS
@@ -184,7 +200,7 @@ exports.updateTerm = async (req, res) => {
     
     // Check if the error is from your Postgres triggers
     let clientMessage = err.message;
-    if (err.message.contains('block_locked_term_edits')) {
+    if (err.message.includes('block_locked_term_edits')) {
         clientMessage = "Cannot edit: This term is locked.";
     }
 

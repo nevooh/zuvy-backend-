@@ -10,7 +10,8 @@ router.put('/:id', protect, classController.updateClass);   // Update
 router.delete('/delete-by-name', protect, classController.deleteClassByName); // <-- move this up
 router.delete('/:id', protect, classController.deleteClass); // DELETE single stream by UUID
 router.get('/:id/students', protect, classController.getClassStudents);
-router.post('/promote-all', protect, classController.promoteAllStudents);
+router.get('/promote-preview', protect, classController.previewPromotion);
+router.post('/promote-all',    protect, classController.promoteAllStudents);
 router.get('/teacher-assignments/:teacherId', protect, classController.getTeacherAssignments);
 router.post('/assign-teacher-classes', protect, classController.assignTeacherToClasses);
 module.exports = router;

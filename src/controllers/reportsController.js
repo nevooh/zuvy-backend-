@@ -11,7 +11,8 @@ exports.getFinanceHistory = async (req, res) => {
     const query = `
       SELECT t.name AS term_name, t.year, v.* FROM v_class_termly_reports v
       JOIN academic_terms t ON v.term_id = t.id
-      WHERE t.school_id = $1 
+      WHERE t.school_id = $1
+        AND t.name != 'Opening Balance'
       ORDER BY t.year DESC, t.name DESC;
     `;
     const result = await pool.query(query, [school_id]);
@@ -53,7 +54,8 @@ exports.getClassTermlyReports = async (req, res) => {
         (v.expected_amount - v.paid_amount) AS balance
       FROM v_class_termly_reports v
       JOIN academic_terms t ON v.term_id = t.id
-      WHERE t.school_id = $1 
+      WHERE t.school_id = $1
+        AND t.name != 'Opening Balance'
       ORDER BY t.year DESC, t.name DESC;
     `;
 
@@ -97,8 +99,9 @@ exports.getGeneralFinanceSummary = async (req, res) => {
                 FROM payments 
                 GROUP BY term_id
             ) p ON t.id = p.term_id
-            WHERE t.school_id = $1 
+            WHERE t.school_id = $1
             AND (t.is_locked = true OR t.is_active = true)
+            AND t.name != 'Opening Balance'
             GROUP BY t.id, t.year, t.name, t.start_date, p.total_paid
             ORDER BY t.start_date DESC;
         `;
@@ -116,9 +119,10 @@ exports.getAllTerms = async (req, res) => {
     const school_id = req.user.school_id;
     try {
         const query = `
-            SELECT id, name, year, is_active 
-            FROM academic_terms 
-            WHERE school_id = $1 
+            SELECT id, name, year, is_active
+            FROM academic_terms
+            WHERE school_id = $1
+              AND name != 'Opening Balance'
             ORDER BY start_date DESC;
         `;
         const result = await pool.query(query, [school_id]);

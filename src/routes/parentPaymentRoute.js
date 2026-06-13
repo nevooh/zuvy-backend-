@@ -1,15 +1,12 @@
 const express = require('express');
 const router = express.Router();
 
-const ledgerController = require('../controllers/studentFinanceLedgerController');
 const paymentController = require('../controllers/parentPaymentController');
 
 // 1. You imported 'protect' here...
 const { protect } = require('../middleware/authMiddleware');
 
 // 2. ...so you must use 'protect' here instead of 'verifyToken'
-router.get('/ledger/:studentId', protect, ledgerController.getStudentPremiumLedger);
-
 router.post('/payments/checkout-summary', protect, paymentController.getCheckoutSummary);
 
 router.post('/payments/stk-push', protect, paymentController.initiateFeePayment);

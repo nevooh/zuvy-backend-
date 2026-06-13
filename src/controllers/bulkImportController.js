@@ -74,7 +74,8 @@ exports.bulkImportStudents = async (req, res) => {
 
   // Fetch classes with stream_name
   const classesResult = await pool.query(
-    `SELECT id, class_name, stream_name FROM classes WHERE school_id = $1`,
+    `SELECT id, class_name, stream_name FROM classes WHERE school_id = $1
+       AND (is_archived = false OR is_archived IS NULL)`,
     [school_id]
   );
 
@@ -88,7 +89,31 @@ exports.bulkImportStudents = async (req, res) => {
   let openingTermId = null;
   const getOpeningTerm = async () => {
     if (openingTermId) return openingTermId;
+
+    // 1. Use the active term if one exists
     let termResult = await pool.query(
+      `SELECT id FROM academic_terms WHERE school_id = $1 AND is_active = true LIMIT 1`,
+      [school_id]
+    );
+    if (termResult.rowCount > 0) {
+      openingTermId = termResult.rows[0].id;
+      return openingTermId;
+    }
+
+    // 2. Fall back to the most recent term (any state)
+    termResult = await pool.query(
+      `SELECT id FROM academic_terms
+       WHERE school_id = $1 AND name != 'Opening Balance'
+       ORDER BY start_date DESC, created_at DESC LIMIT 1`,
+      [school_id]
+    );
+    if (termResult.rowCount > 0) {
+      openingTermId = termResult.rows[0].id;
+      return openingTermId;
+    }
+
+    // 3. Last resort — no terms at all, create the placeholder
+    termResult = await pool.query(
       `SELECT id FROM academic_terms WHERE school_id = $1 AND name = 'Opening Balance' LIMIT 1`,
       [school_id]
     );
@@ -138,7 +163,8 @@ exports.bulkImportStudents = async (req, res) => {
     const class_id = classMap[key];
     if (!class_id) {
       results.failed++;
-      results.errors.push(`Row ${rowNum}: class "${class_name} ${stream_name}".trim() not found — check class_name and stream_name match your system`);
+      const display = [class_name, stream_name].filter(Boolean).join(' · ').trim();
+      results.errors.push(`Row ${rowNum}: class "${display}" not found — verify it matches a class in your system exactly`);
       continue;
     }
 
@@ -171,7 +197,7 @@ exports.bulkImportStudents = async (req, res) => {
 
       if (studentInsert.rowCount === 0) {
         results.failed++;
-        results.errors.push(`Row ${rowNum}: admission "${admission_number}" already exists — skipped`);
+        results.errors.push(`Row ${rowNum}: "${full_name}" — admission number "${admission_number}" is already registered in this school`);
         continue;
       }
 

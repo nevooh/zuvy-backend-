@@ -8,9 +8,9 @@ class MpesaService {
     const auth = Buffer.from(`${key}:${secret}`).toString('base64');
 
     try {
+        const mpesaBase = process.env.MPESA_BASE_URL || 'https://sandbox.safaricom.co.ke';
         const response = await axios.get(
-            // Adding a random 'v' param forces Safaricom to give a NEW token
-            `https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials&v=${Math.random()}`,
+            `${mpesaBase}/oauth/v1/generate?grant_type=client_credentials&v=${Math.random()}`,
             { headers: { Authorization: `Basic ${auth}` } }
         );
         return response.data.access_token;
@@ -21,11 +21,11 @@ class MpesaService {
 }
 
     // 1. STK Push for SMS Credits
-    static async initiateSTKPush(amount, phoneNumber, schoolId) {
+    static async initiateSTKPush(amount, phoneNumber, schoolId, callbackUrl = null) {
         const token = await this.getOAuthToken();
         const dt = datetime.create();
         const timestamp = dt.format('YmdHMS');
-        
+
         // ✅ FIXED: Changed MPESA_SHORTCODE to MPESA_STK_SHORTCODE
         const password = Buffer.from(
             process.env.MPESA_STK_SHORTCODE + process.env.MPESA_PASSKEY + timestamp
@@ -40,13 +40,13 @@ class MpesaService {
             PartyA: phoneNumber,
             PartyB: process.env.MPESA_STK_SHORTCODE, // ✅ FIXED
             PhoneNumber: phoneNumber,
-            CallBackURL: process.env.MPESA_CALLBACK_URL,
+            CallBackURL: callbackUrl || process.env.MPESA_CALLBACK_URL,
             AccountReference: `School-${schoolId.substring(0, 5)}`,
             TransactionDesc: "SMS Credits Purchase"
         };
 
         return axios.post(
-            "https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest",
+            `${process.env.MPESA_BASE_URL || 'https://sandbox.safaricom.co.ke'}/mpesa/stkpush/v1/processrequest`,
             data,
             { headers: { Authorization: `Bearer ${token}` } }
         );
@@ -79,7 +79,7 @@ class MpesaService {
 
         try {
             return await axios.post(
-                "https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest",
+                `${process.env.MPESA_BASE_URL || 'https://sandbox.safaricom.co.ke'}/mpesa/stkpush/v1/processrequest`,
                 data,
                 { headers: { Authorization: `Bearer ${token}` } }
             );
@@ -98,7 +98,7 @@ class MpesaService {
 
             // 🔑 Step 2: Get a fresh token (using your new random-v logic)
             const token = await this.getOAuthToken();
-            const url = "https://sandbox.safaricom.co.ke/mpesa/b2b/v1/paymentrequest";
+            const url = `${process.env.MPESA_BASE_URL || 'https://sandbox.safaricom.co.ke'}/mpesa/b2b/v1/paymentrequest`;
 
             const data = {
                 "Initiator": process.env.MPESA_INITIATOR_NAME,

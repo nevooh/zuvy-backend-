@@ -1,10 +1,15 @@
 const pool = require('../config/db');
+const { assertParentOwnsStudent, isParentRole } = require('../utils/parentAccess');
 
-exports.getStudentPremiumLedger = async (req, res) => {
+exports.getStudentPremiumLedger = async (req, res, next) => {
     const { studentId } = req.params;
-    const { schoolId } = req.user; 
+    const schoolId = req.school_id;
 
     try {
+        if (isParentRole(req)) {
+            await assertParentOwnsStudent(pool, req, studentId);
+        }
+
         const query = `
           WITH active_term AS (
     SELECT id, name as term_name, year, is_active 
@@ -68,6 +73,7 @@ exports.getStudentPremiumLedger = async (req, res) => {
         });
 
     } catch (err) {
+        if (err.status) return next(err);
         // Keep this error log for system safety
         console.error("🔥 DATABASE CRASH:", err.message);
         res.status(500).json({ 

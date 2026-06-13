@@ -1,0 +1,1 @@
+ALTER TABLE subjects ADD COLUMN IF NOT EXISTS short_form VARCHAR(100);

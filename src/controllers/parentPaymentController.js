@@ -2,10 +2,19 @@
 const { pool } = require('../config/db');
 const MpesaService = require('../services/mpesaService');
 const smsController = require('./smsController');
+const { assertParentOwnsStudent, isParentRole } = require('../utils/parentAccess');
+
+function parsePositiveAmount(value) {
+    const amount = Number(value);
+    return Number.isFinite(amount) && amount > 0 ? amount : null;
+}
 // 1. GET CHECKOUT SUMMARY
 exports.getCheckoutSummary = async (req, res) => {
     try {
-        const { amount } = req.body;
+        const amount = parsePositiveAmount(req.body.amount);
+        if (!amount) {
+            return res.status(400).json({ success: false, message: "Valid amount required" });
+        }
         const feePercent = 0.01; // change this one place only
         const serviceFee = amount * feePercent;
         const totalAmount = amount + serviceFee;
@@ -24,15 +33,37 @@ exports.getCheckoutSummary = async (req, res) => {
     }
 };
 
-// 2. INITIATE STK PUSH
 exports.initiateFeePayment = async (req, res) => {
-    const { amount, phone, student_id } = req.body;
-    const schoolId = req.user.schoolId; 
-
-    // --- DEBUG: LOG START ---
-    console.log(`🚀 STK PUSH TRIGGERED: Student: ${student_id}, Phone: ${phone}, Amt: ${amount}`);
+    const { phone, student_id } = req.body;
+    const amount = parsePositiveAmount(req.body.amount);
+    const schoolId = req.user.schoolId;
 
     try {
+        if (!amount || !phone || !student_id) {
+            return res.status(400).json({ success: false, message: "Amount, phone, and student_id are required" });
+        }
+
+        if (isParentRole(req)) {
+            await assertParentOwnsStudent(pool, req, student_id);
+        }
+
+        // ✅ CHECK PAYBILL FIRST before doing anything
+        const schoolCheck = await pool.query(
+            `SELECT settlement_paybill FROM schools WHERE id = $1`,
+            [schoolId]
+        );
+
+        if (!schoolCheck.rows[0]?.settlement_paybill) {
+            return res.status(400).json({ 
+                success: false, 
+                code: 'NO_PAYBILL',
+                message: "School has not set up M-Pesa payments yet. Please contact your school admin." 
+            });
+        }
+
+        // --- DEBUG: LOG START ---
+        console.log(`🚀 STK PUSH TRIGGERED: Student: ${student_id}, Phone: ${phone}, Amt: ${amount}`);
+
         let formattedPhone = phone.replace(/\D/g, '');
         if (formattedPhone.startsWith('0')) formattedPhone = '254' + formattedPhone.slice(1);
 
@@ -54,11 +85,13 @@ exports.initiateFeePayment = async (req, res) => {
         res.status(200).json({ success: true, message: "Prompt sent to phone" });
 
     } catch (err) {
+        if (err.status) {
+            return res.status(err.status).json({ success: false, message: err.message });
+        }
         console.error("❌ STK ERROR:", err.message);
         res.status(500).json({ success: false, message: "M-Pesa Service Unavailable" });
     }
 };
-
 exports.mpesaFeeCallback = async (req, res) => {
     const { Body } = req.body;
     const checkoutId = Body.stkCallback.CheckoutRequestID;
@@ -141,6 +174,7 @@ if (settlement_paybill) {
                     // 5. SMS Receipt
                     smsController.triggerAutoReceipt(school_id, student_id, amountPaid)
                         .catch(e => console.error("SMS Error:", e.message));
+
 
                 } else {
                     console.error("❌ Critical: Could not find ANY term for this school.");
