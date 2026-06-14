@@ -3,7 +3,7 @@ const { Resend } = require('resend');
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 const MASTER_EMAIL = 'zuvytechnologies@gmail.com';
-const FROM         = 'Zuvy Network <onboarding@resend.dev>';
+const FROM = 'Zuvy Network <noreply@zuvyschools.top>';
 
 // ── Send school-deleted audit email to master admin ───────────────────────
 async function sendSchoolDeletedEmail({ schoolName, schoolEmail, deletedAt, restoreDeadline }) {
