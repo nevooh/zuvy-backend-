@@ -50,8 +50,8 @@ exports.getResultsGrid = async (req, res) => {
     );
 
     const subjectsRes = await pool.query(
-      `SELECT s.id, s.name, s.code
-       FROM subjects s
+      `SELECT s.id, s.name, s.code, s.short_form
+FROM subjects s
        JOIN class_subjects cs ON cs.subject_id = s.id
        WHERE cs.class_id = $1 AND s.school_id = $2
        ORDER BY s.is_core DESC, s.name ASC`,
@@ -265,7 +265,7 @@ exports.getLeaderboard = async (req, res) => {
     // Fetch ALL results for this exam in one query (no N+1)
     const allResultsRes = await pool.query(
       `SELECT r.student_id, r.score, r.max_score, r.grade, r.points,
-              s.name as subject_name
+              s.name as subject_name, s.short_form as subject_short_form
        FROM results r
        JOIN subjects s ON s.id = r.subject_id
        WHERE r.exam_id = $1 AND r.school_id = $2`,
