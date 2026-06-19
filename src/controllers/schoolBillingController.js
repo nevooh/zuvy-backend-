@@ -209,10 +209,15 @@ exports.instasendWebhook = async (req, res) => {
     }
 
     // ── Handle SMS Wallet Top-ups ──────────────────────────────────────────
-    if (api_ref.startsWith('SMS-')) {
-      const parts = api_ref.split('-');
-      const schoolIdFromRef = parts[1];
-      const amountPaid = parseFloat(value);
+ if (api_ref.startsWith('SMS-') || api_ref.startsWith('sms-wallet-')) {
+  const match = api_ref.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
+  const schoolIdFromRef = match ? match[0] : null;
+  const amountPaid = parseFloat(value);
+
+  if (!schoolIdFromRef) {
+    console.error('Webhook: could not extract school_id from api_ref', api_ref);
+    return res.status(400).json({ error: 'Invalid api_ref format' });
+  }
 
       await db.query('BEGIN');
       
