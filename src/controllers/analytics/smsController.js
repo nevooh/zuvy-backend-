@@ -1,11 +1,5 @@
 ﻿const pool = require('../../config/analyticsPool');
-const AfricasTalking = require('africastalking');
-
-const at = AfricasTalking({
-  apiKey:   process.env.AT_API_KEY,
-  username: process.env.AT_USERNAME,
-});
-const sms = at.SMS;
+const sendSMS = require('../../services/smsService');
 
 function formatPhone(phone) {
   let p = (phone || '').trim();
@@ -374,61 +368,43 @@ exports.sendSms = async (req, res) => {
 
       const phone = formatPhone(r.parent_phone);
 
-      if (scheduled_at) {
-        await pool.query(
-          `INSERT INTO sent_sms(school_id,student_id,phone,message,
-           template_id,status,sms_type,scheduled_at,recipient_count)
-           VALUES($1,$2,$3,$4,$5,'scheduled',$6,$7,1)`,
-          [profile_id, r.id, r.parent_phone, msg,
-           template_id || null, sms_type, scheduled_at]
-        );
-        out.scheduled++;
-      } else {
-        try {
-          const atResp   = await sms.send({ to: [phone], message: msg });
-          const recipient = atResp?.SMSMessageData?.Recipients?.[0];
-          const messageId = recipient?.messageId || null;
-          await pool.query(
-            `INSERT INTO sent_sms(school_id,student_id,phone,message,
-             template_id,status,sms_type,recipient_count,message_id)
-             VALUES($1,$2,$3,$4,$5,'sent',$6,1,$7)
-             ON CONFLICT DO NOTHING`,
-            [profile_id, r.id, r.parent_phone, msg,
-             template_id || null, sms_type, messageId]
-          );
-          out.sent++;
-        } catch (atErr) {
-          await pool.query(
-            `INSERT INTO sent_sms(school_id,student_id,phone,message,
-             template_id,status,sms_type,recipient_count)
-             VALUES($1,$2,$3,$4,$5,'failed',$6,1)`,
-            [profile_id, r.id, r.parent_phone, msg,
-             template_id || null, sms_type]
-          );
-          out.failed++;
-          out.errors.push({ student: r.full_name, error: atErr.message });
-        }
-      }
+     if (scheduled_at) {
+  await pool.query(
+    `INSERT INTO sent_sms(school_id,student_id,phone,message,
+     template_id,status,sms_type,scheduled_at,recipient_count)
+     VALUES($1,$2,$3,$4,$5,'scheduled',$6,$7,1)`,
+    [profile_id, r.id, r.parent_phone, msg,
+     template_id || null, sms_type, scheduled_at]
+  );
+  out.scheduled++;
+} else {
+  try {
+    const response = await sendSMS(school_id, phone, msg);
+    const celcomMessageId = response?.responses?.[0]?.messageid ?? null;
+    await pool.query(
+      `INSERT INTO sent_sms(school_id,student_id,phone,message,
+       template_id,status,sms_type,recipient_count,celcom_message_id)
+       VALUES($1,$2,$3,$4,$5,'sent',$6,1,$7)
+       ON CONFLICT DO NOTHING`,
+      [profile_id, r.id, r.parent_phone, msg,
+       template_id || null, sms_type, celcomMessageId]
+    );
+    out.sent++;
+  } catch (smsErr) {
+    await pool.query(
+      `INSERT INTO sent_sms(school_id,student_id,phone,message,
+       template_id,status,sms_type,recipient_count)
+       VALUES($1,$2,$3,$4,$5,'failed',$6,1)`,
+      [profile_id, r.id, r.parent_phone, msg,
+       template_id || null, sms_type]
+    );
+    out.failed++;
+    out.errors.push({ student: r.full_name, error: smsErr.message });
+  }
+}
     }
 
-    // â”€â”€ DEDUCT BALANCE AFTER SUCCESSFUL SENDS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-    const totalCost = out.sent * SMS_RATE;
-
-    if (totalCost > 0) {
-      await pool.query(
-        `UPDATE sms_wallets 
-         SET balance = balance - $1,
-             updated_at = NOW()
-         WHERE school_id = $2`,
-        [totalCost, school_id]
-      );
-
-      await pool.query(
-        `INSERT INTO wallet_transactions (school_id, amount, transaction_type, description)
-         VALUES ($1, $2, 'usage', $3)`,
-        [school_id, -totalCost, `Sent ${out.sent} SMS (${sms_type})`]
-      );
-    }
+  
 
     res.json({
       ...out,
