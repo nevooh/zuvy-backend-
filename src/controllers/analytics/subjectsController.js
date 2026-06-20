@@ -115,7 +115,10 @@ exports.getClassSubjects = async (req, res) => {
 };
 
 // 6. Assign Subject to Class
+const { applyDefaultBandsToSubject } = require('../../utils/seedDefaultGrading');
+
 exports.assignSubjectToClass = async (req, res) => {
+  const school_id = req.school_id;
   const { class_id, subject_id } = req.body;
   try {
     await pool.query(
@@ -124,6 +127,17 @@ exports.assignSubjectToClass = async (req, res) => {
        ON CONFLICT DO NOTHING`,
       [class_id, subject_id]
     );
+
+    // Auto-seed grade bands for this subject+class combination
+    const classRes = await pool.query(
+      `SELECT level_type FROM classes WHERE id = $1`,
+      [class_id]
+    );
+    const level_type = classRes.rows[0]?.level_type;
+    if (level_type) {
+      await applyDefaultBandsToSubject(school_id, class_id, subject_id, level_type, pool);
+    }
+
     res.json({ message: 'Assigned' });
   } catch (err) {
     res.status(500).json({ error: err.message });
